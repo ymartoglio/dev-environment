@@ -1,0 +1,89 @@
+#!/bin/bash
+
+getopt --test > /dev/null
+if [[ $? != 4 ]]; then
+    echo "I’m sorry, `getopt --test` failed in this environment."
+    exit 1
+fi
+
+SHORT=absdo:
+LONG=app,build,stop,debug,output:
+
+# -temporarily store output to be able to check for errors
+# -activate advanced mode getopt quoting e.g. via “--options”
+# -pass arguments only via   -- "$@"   to separate them correctly
+PARSED=`getopt --options $SHORT --longoptions $LONG --name "$0" -- "$@"`
+if [[ $? != 0 ]]; then
+    # e.g. $? == 1
+    #  then getopt has complained about wrong arguments to stdout
+    exit 2
+fi
+# use eval with "$PARSED" to properly handle the quoting
+eval set -- "$PARSED"
+
+# now enjoy the options in order and nicely split until we see --
+while true; do
+    case "$1" in
+	 -b|--build)
+	    b=y
+	    shift
+	    ;;
+	 -s|--stop)
+	    s=y
+	    shift
+	    ;;
+	 -d|--debug)
+            d=y
+            shift
+            ;;
+        -o|--output)
+            outFile="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Programming error"
+            exit 3
+            ;;
+    esac
+done
+
+# handle non-option arguments
+if [[ $# != 1 ]]; then
+    echo "$0: A single input file is required."
+    exit 4
+fi
+
+echo "build: $b, debug: $d, in: $1, out: $outFile"
+
+
+
+DOCKER_ENV_PATH="/home/yo/Documents/dev/doc/docker/env"
+APP_PATH="/home/yo/dev/cm-app"
+APP_FRONT_PATH="/home/yo/dev/cm-app-front"
+
+if [[ $b = y ]]; then
+	echo Building $1
+	docker build -t yo/$1 $DOCKER_ENV_PATH/$1/
+else
+	if [[ $s != y  ]]; then
+		echo running $1
+		if [[ $1 = node ]]; then
+			OPT="-p 8080:8080 -p 5858:5858 -v $APP_PATH:/app --net dev-bridge --ip 10.10.0.1 -it"
+		elif [[ $1 = mongo ]]; then
+	           OPT="-v $DOCKER_ENV_PATH/$1/data:/data --net dev-bridge --ip 10.10.0.2 -it"
+		elif [[ $1 = test ]]; then
+			OPT="-v $DOCKER_ENV_PATH/$1/src:/src --net dev-bridge --ip 10.10.0.3 -it"
+        elif [[ $1 = nginx ]]; then
+            OPT="-p 80:80 -v $APP_FRONT_PATH:/var/www/html --net dev-bridge --ip 10.10.0.4 -it"
+        fi
+        echo Options $OPT
+		docker run $OPT yo/$1
+	else
+		echo Stopping $1
+		docker ps -a | grep $1 | awk '{print $1}' | xargs docker stop
+	fi
+fi
