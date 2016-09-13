@@ -14,7 +14,7 @@ Dockerfile
 
  - **RUN**
 
-    Run a shell command duriong image building
+    Run a shell command during image building
 
  - **EXPOSE**
 
@@ -57,7 +57,7 @@ Options
     --name <not_funny_name>
     --net <name_of_a_bridge>
 
-Mounted file with **docker run -v**
+Mount file with **docker run -v**
 
 
 For containers
@@ -151,8 +151,8 @@ Create bridge
 
 Daemon
 ------
-When installed, docker creates a default bridge named `docker0` width default subnet configuration.
-to override subnet default, use `--bip` options on the docker's daemon startup.
+When installed, docker creates a default bridge named `docker0` with default subnet configuration.
+To override subnet default, use `--bip` options on the docker's daemon startup.
 
 Modify the startup options by adding `--bip`
 
